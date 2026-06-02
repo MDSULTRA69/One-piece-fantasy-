@@ -1,5 +1,5 @@
 {
-  "name": "grand-line-fantasy-api",
+  "name": "one-piece-fantasy-api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,9 @@
     "start": "node --enable-source-maps ./index.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20 <27"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1"
   }
 }
