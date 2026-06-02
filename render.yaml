@@ -1,0 +1,16 @@
+# Grand Line Fantasy — Render Deployment Configuration
+services:
+  - type: web
+    name: grand-line-fantasy-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: echo "No build step needed — pre-bundled"
+    startCommand: node --enable-source-maps ./index.mjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false

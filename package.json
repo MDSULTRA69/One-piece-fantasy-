@@ -1,0 +1,12 @@
+{
+  "name": "grand-line-fantasy-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --enable-source-maps ./index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
