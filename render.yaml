@@ -5,8 +5,8 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: echo "No build step needed — pre-bundled"
-    startCommand: node --enable-source-maps ./index.mjs
+    buildCommand: npm install
+    startCommand: node ./migrate.mjs && node --enable-source-maps ./index.mjs
     envVars:
       - key: NODE_ENV
         value: production
