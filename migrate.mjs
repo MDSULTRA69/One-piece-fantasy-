@@ -41,11 +41,12 @@ async function migrate() {
       CREATE TABLE IF NOT EXISTS chapters (
         id             SERIAL PRIMARY KEY,
         chapter_number INTEGER NOT NULL UNIQUE,
-        title          TEXT NOT NULL,
+        title          TEXT NOT NULL DEFAULT 'TBA',
         release_date   TEXT NOT NULL,
         summary        TEXT,
         is_picks_locked BOOLEAN NOT NULL DEFAULT FALSE,
         is_scoring_done BOOLEAN NOT NULL DEFAULT FALSE,
+        is_break        BOOLEAN NOT NULL DEFAULT FALSE,
         created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
@@ -92,6 +93,13 @@ async function migrate() {
     `);
 
     console.log("Tables created.");
+
+    // Add new columns to existing tables safely (for existing deployments)
+    await client.query(`
+      ALTER TABLE chapters ADD COLUMN IF NOT EXISTS is_break BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE chapters ALTER COLUMN title SET DEFAULT 'TBA';
+    `);
+    console.log("Columns patched.");
 
     // Seed characters only if the table is empty
     const { rows } = await client.query("SELECT COUNT(*) FROM characters");

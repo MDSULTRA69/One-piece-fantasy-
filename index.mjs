@@ -41322,8 +41322,9 @@ var ListChaptersResponseItem = objectType({
 var ListChaptersResponse = arrayType(ListChaptersResponseItem);
 var CreateChapterBody = objectType({
   "chapterNumber": numberType(),
-  "title": stringType(),
-  "releaseDate": stringType()
+  "title": stringType().optional(),
+  "releaseDate": stringType(),
+  "isBreak": booleanType().optional()
 });
 var GetActiveChapterResponse = objectType({
   "id": numberType(),
@@ -59951,6 +59952,7 @@ var chaptersTable = pgTable("chapters", {
   summary: text("summary"),
   isPicksLocked: boolean("is_picks_locked").notNull().default(false),
   isScoringDone: boolean("is_scoring_done").notNull().default(false),
+  isBreak: boolean("is_break").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 });
 var insertChapterSchema = createInsertSchema(chaptersTable).omit({ id: true, createdAt: true, isPicksLocked: true, isScoringDone: true });
@@ -60228,6 +60230,7 @@ function formatChapter(c) {
     summary: c.summary ?? null,
     isPicksLocked: c.isPicksLocked,
     isScoringDone: c.isScoringDone,
+    isBreak: c.isBreak ?? false,
     createdAt: c.createdAt.toISOString()
   };
 }
@@ -60270,8 +60273,34 @@ router4.post("/chapters", requireAuth, async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [chapter] = await db.insert(chaptersTable).values(parsed.data).returning();
+  const [chapter] = await db.insert(chaptersTable).values({
+    chapterNumber: parsed.data.chapterNumber,
+    title: parsed.data.title ?? "TBA",
+    releaseDate: parsed.data.releaseDate,
+    isBreak: parsed.data.isBreak ?? false
+  }).returning();
   res.status(201).json(formatChapter(chapter));
+});
+router4.patch("/chapters/:id", requireAuth, async (req, res) => {
+  // ── Admin-only route ──────────────────────────────────────────────
+  const ADMIN_USERNAMES = ["admin", "onepiece_admin", "oda"];
+  if (!ADMIN_USERNAMES.includes(req.username?.toLowerCase())) {
+    res.status(403).json({ error: "Forbidden: admin access only" });
+    return;
+  }
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [chapter] = await db.select().from(chaptersTable).where(eq(chaptersTable.id, id));
+  if (!chapter) { res.status(404).json({ error: "Chapter not found" }); return; }
+  const updates = {};
+  if (req.body.title !== undefined) updates.title = req.body.title;
+  if (req.body.releaseDate !== undefined) updates.releaseDate = req.body.releaseDate;
+  if (req.body.isBreak !== undefined) updates.isBreak = req.body.isBreak;
+  if (req.body.isPicksLocked !== undefined) updates.isPicksLocked = req.body.isPicksLocked;
+  if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
+  const [updated] = await db.update(chaptersTable).set(updates).where(eq(chaptersTable.id, id)).returning();
+  res.json(formatChapter(updated));
 });
 router4.post("/chapters/:id/score", requireAuth, async (req, res) => {
   // ── Admin-only route ──────────────────────────────────────────────
